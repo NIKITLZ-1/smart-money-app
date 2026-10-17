@@ -8,39 +8,146 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        body { background-color: #121212; color: #ffffff; }
+        body { background-color: #121212; color: #ffffff; padding-bottom: 80px; }
         .notification { transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(-150%); }
         .notification.show { transform: translateY(0); }
     </style>
 </head>
-<body class="p-4 relative h-screen overflow-hidden">
+<body class="p-4 relative min-h-screen select-none">
     
-    <!-- Всплывающая карточка сигнала -->
-    <div id="notificationBanner" class="notification absolute top-4 left-4 right-4 bg-green-600 rounded-xl p-4 shadow-2xl z-50">
-        <h3 class="font-bold text-lg text-white mb-1">🔥 Новый Сигнал!</h3>
+    <!-- Всплывающее пуш-уведомление о новом сигнале -->
+    <div id="notificationBanner" class="notification fixed top-4 left-4 right-4 bg-green-600 rounded-xl p-4 shadow-2xl z-50 border border-green-400">
+        <div class="flex justify-between items-center mb-1">
+            <h3 class="font-bold text-sm uppercase tracking-wider text-green-100">🔥 Новый Сигнал!</h3>
+            <span class="text-xs bg-green-800 px-2 py-0.5 rounded text-green-200">Только что</span>
+        </div>
         <p id="matchName" class="font-bold text-xl text-white"></p>
-        <div class="mt-2 bg-green-800 rounded-lg p-2.5 space-y-1">
+        <div class="mt-2 bg-green-800/80 rounded-lg p-2.5 space-y-1">
             <p id="betDetails" class="text-sm font-medium text-white"></p>
             <p id="betAmount" class="text-sm font-bold text-yellow-300"></p>
         </div>
     </div>
 
-    <!-- Основной интерфейс -->
-    <h1 class="text-2xl font-bold mb-6 text-center text-green-500 mt-4">Smart Money</h1>
+    <!-- Шапка -->
+    <h1 class="text-2xl font-bold mb-6 text-center text-green-500 mt-2 tracking-wide">Smart Money</h1>
     
-    <div class="bg-gray-800 rounded-xl p-6 text-center border border-gray-700">
-        <div class="animate-pulse w-12 h-12 bg-green-500 rounded-full mx-auto mb-4 opacity-20"></div>
-        <h2 class="text-lg font-semibold text-gray-300">Ожидание сигналов...</h2>
-        <p class="text-sm text-gray-500 mt-2">Не закрывай приложение. Сигнал появится на этом экране моментально.</p>
+    <!-- ВКЛАДКА 1: МАТЧ-ЦЕНТР -->
+    <div id="tabMatchCenter" class="space-y-4">
+        <div class="bg-gray-800/90 rounded-2xl p-6 text-center border border-gray-700 shadow-lg">
+            <div class="text-4xl mb-3">⚽</div>
+            <h2 class="text-xl font-bold text-white">Матч-центр</h2>
+            <div class="inline-block bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-semibold px-3 py-1 rounded-full mt-2">
+                Скоро появится
+            </div>
+            <p class="text-sm text-gray-400 mt-3 leading-relaxed">
+                Здесь будет расписание ключевых матчей дня и статистика выбранных лиг в реальном времени.
+            </p>
+        </div>
+
+        <div class="bg-gray-800/50 rounded-2xl p-5 text-center border border-gray-800">
+            <div class="animate-pulse w-8 h-8 bg-green-500 rounded-full mx-auto mb-2 opacity-30"></div>
+            <p class="text-xs text-gray-400">Радар активен. Новые сигналы появятся прямо на экране и сохранятся во вкладке «История».</p>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 2: ИСТОРИЯ СИГНАЛОВ -->
+    <div id="tabHistory" class="hidden space-y-3">
+        <div id="historyList" class="space-y-3"></div>
+    </div>
+
+    <!-- Нижняя панель навигации -->
+    <div class="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur border-t border-gray-800 flex justify-around p-2 z-40">
+        <button onclick="switchTab('match')" id="btnMatch" class="flex flex-col items-center text-green-500 w-1/2 py-1 transition">
+            <span class="text-xl">⚽</span>
+            <span class="text-xs mt-1 font-semibold">Матч-центр</span>
+        </button>
+        <button onclick="switchTab('history')" id="btnHistory" class="flex flex-col items-center text-gray-500 w-1/2 py-1 transition relative">
+            <span class="text-xl">📋</span>
+            <span class="text-xs mt-1 font-semibold">История <span id="historyCount" class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded-full text-[10px] ml-0.5">0</span></span>
+        </button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Универсальное подключение (работает и на ПК, и в телефоне)
         const socket = io(); 
 
+        function switchTab(tab) {
+            const tabMatch = document.getElementById('tabMatchCenter');
+            const tabHistory = document.getElementById('tabHistory');
+            const btnMatch = document.getElementById('btnMatch');
+            const btnHistory = document.getElementById('btnHistory');
+
+            if (tab === 'match') {
+                tabMatch.classList.remove('hidden');
+                tabHistory.classList.add('hidden');
+                btnMatch.className = 'flex flex-col items-center text-green-500 w-1/2 py-1 transition';
+                btnHistory.className = 'flex flex-col items-center text-gray-500 w-1/2 py-1 transition';
+            } else {
+                tabMatch.classList.add('hidden');
+                tabHistory.classList.remove('hidden');
+                btnMatch.className = 'flex flex-col items-center text-gray-500 w-1/2 py-1 transition';
+                btnHistory.className = 'flex flex-col items-center text-green-500 w-1/2 py-1 transition';
+            }
+        }
+
+        function getStatusBadge(status) {
+            switch(status) {
+                case 'win': return '<span class="bg-green-500/20 text-green-400 border border-green-500/30 px-2.5 py-1 rounded-lg text-xs font-bold">✅ Выигрыш</span>';
+                case 'loss': return '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded-lg text-xs font-bold">❌ Проигрыш</span>';
+                case 'refund': return '<span class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-lg text-xs font-bold">🔄 Возврат</span>';
+                default: return '<span class="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2.5 py-1 rounded-lg text-xs font-bold animate-pulse">⏳ В игре</span>';
+            }
+        }
+
+        function getBorderColor(status) {
+            switch(status) {
+                case 'win': return 'border-green-500/50 bg-gray-800/90';
+                case 'loss': return 'border-red-500/40 bg-gray-800/60';
+                case 'refund': return 'border-blue-500/40 bg-gray-800/80';
+                default: return 'border-gray-700 bg-gray-800';
+            }
+        }
+
+        // Отрисовка списка истории
+        socket.on('history_update', (history) => {
+            document.getElementById('historyCount').innerText = history.length;
+            const list = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                list.innerHTML = `
+                    <div class="bg-gray-800/60 rounded-2xl p-8 text-center border border-gray-700/50">
+                        <div class="text-3xl mb-2">📭</div>
+                        <p class="text-gray-400 text-sm">История сигналов пока пуста.</p>
+                    </div>`;
+                return;
+            }
+
+            list.innerHTML = history.map(item => `
+                <div class="rounded-xl p-4 border ${getBorderColor(item.status)} shadow-md transition">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="text-[11px] text-gray-400">🕒 ${item.time}</span>
+                            <h3 class="font-bold text-base text-white mt-0.5">${item.match}</h3>
+                        </div>
+                        ${getStatusBadge(item.status)}
+                    </div>
+                    <div class="bg-gray-900/90 rounded-lg p-3 mt-2 flex justify-between items-center text-sm border border-gray-800">
+                        <div>
+                            <p class="text-gray-300">Исход: <span class="text-white font-semibold">${item.bet}</span></p>
+                            <p class="text-yellow-400 font-medium text-xs mt-1">💰 Сумма: ${item.amount}</p>
+                        </div>
+                        <div class="text-right bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                            <span class="text-[10px] text-gray-400 block uppercase">Кэф</span>
+                            <span class="text-base font-bold text-green-400">${item.odds}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        });
+
+        // Всплывающий баннер при новом сигнале
         socket.on('new_signal', (data) => {
             if (tg.HapticFeedback) {
                 tg.HapticFeedback.notificationOccurred('success');
@@ -55,7 +162,7 @@
             
             setTimeout(() => {
                 banner.classList.remove('show');
-            }, 12000);
+            }, 10000);
         });
     </script>
 </body>
