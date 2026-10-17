@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Админка сигналов</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white p-6 font-sans">
+    <div class="max-w-md mx-auto bg-gray-800 rounded-xl p-6 mt-10 shadow-xl border border-gray-700">
+        <h1 class="text-2xl font-bold mb-6 text-green-400">Отправка сигнала</h1>
+        
+        <div class="space-y-4">
+            <input type="text" id="match" placeholder="Матч (Реал - Барса)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500">
+            <input type="text" id="bet" placeholder="Ставка (П1, ТБ 2.5)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500">
+            <input type="text" id="odds" placeholder="Коэффициент (1.85)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500">
+            <!-- Новое поле для суммы ставки -->
+            <input type="text" id="amount" placeholder="Сумма ставки (например: 5000 ₽ или 5%)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500">
+
+            <button id="sendBtn" class="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-3 rounded-lg mt-4 transition">
+                🚀 ОТПРАВИТЬ ВСЕМ
+            </button>
+        </div>
+        <p id="status" class="mt-4 text-center text-gray-400">Подключение к серверу...</p>
+    </div>
+
+    <script>
+        // Подключаемся автоматически к тому адресу, где открыта админка
+        const socket = io();
+
+        socket.on('connect', () => {
+            document.getElementById('status').innerText = '🟢 Подключен к серверу! Можно отправлять.';
+        });
+
+        document.getElementById('sendBtn').addEventListener('click', () => {
+            const match = document.getElementById('match').value;
+            const bet = document.getElementById('bet').value;
+            const odds = document.getElementById('odds').value;
+            const amount = document.getElementById('amount').value;
+
+            if(!match || !bet || !odds || !amount) return alert("Заполни все поля!");
+
+            // Отправляем данные на сервер вместе с суммой
+            socket.emit('send_signal', { match, bet, odds, amount });
+            
+            // Очищаем поля после отправки
+            document.getElementById('match').value = '';
+            document.getElementById('bet').value = '';
+            document.getElementById('odds').value = '';
+            document.getElementById('amount').value = '';
+        });
+    </script>
+</body>
+</html>
