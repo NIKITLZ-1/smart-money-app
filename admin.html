@@ -26,16 +26,33 @@
         </div>
 
         <!-- ВКЛАДКА 1: ОТПРАВКА СИГНАЛА -->
-        <div id="viewSend" class="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
-            <h2 class="text-lg font-semibold mb-4 text-gray-200">Параметры сигнала</h2>
-            <div class="space-y-4">
-                <input type="text" id="match" placeholder="Матч (например: Реал - Барселона)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500">
-                <input type="text" id="bet" placeholder="Исход (например: П1 или ТБ 2.5)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500">
-                <input type="text" id="odds" placeholder="Коэффициент (например: 1.85)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500">
-                <input type="text" id="amount" placeholder="Сумма ставки (например: 5000 ₽ или 5%)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500">
+       <div id="viewSend" class="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
+            <div class="flex gap-2 mb-4">
+                <button onclick="setSignalType('single')" id="btnTypeSingle" class="w-1/2 py-1.5 rounded bg-blue-500 text-white font-bold text-sm">Ординар</button>
+                <button onclick="setSignalType('express')" id="btnTypeExpress" class="w-1/2 py-1.5 rounded bg-gray-700 text-gray-400 font-bold text-sm">Экспресс</button>
+            </div>
 
+            <!-- Форма Ординара -->
+            <div id="formSingle" class="space-y-4">
+                <input type="text" id="match" placeholder="Матч (например: Реал - Барселона)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500">
+                <input type="text" id="bet" placeholder="Исход (например: П1)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500">
+                <input type="text" id="odds" placeholder="Коэффициент (например: 1.85)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+
+            <!-- Форма Экспресса -->
+            <div id="formExpress" class="hidden space-y-4">
+                <div id="expressEvents" class="space-y-3 p-3 bg-gray-900 rounded-lg border border-gray-700">
+                    <!-- Здесь будут поля матчей экспресса -->
+                </div>
+                <button onclick="addExpressEvent()" class="w-full border border-dashed border-gray-500 text-gray-400 py-2 rounded-lg hover:text-white hover:border-gray-300 transition">+ Добавить событие</button>
+                <input type="text" id="totalOdds" placeholder="Итоговый коэффициент (например: 4.50)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-purple-500">
+            </div>
+
+            <!-- Общая сумма и кнопка -->
+            <div class="space-y-4 mt-4 pt-4 border-t border-gray-700">
+                <input type="text" id="amount" placeholder="Сумма ставки (например: 5000 ₽ или 5%)" class="w-full bg-gray-700 rounded-lg p-3 outline-none focus:ring-2 focus:ring-green-500">
                 <button id="sendBtn" class="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-3.5 rounded-lg mt-2 transition shadow-lg">
-                    🚀 ОТПРАВИТЬ ВСЕМ
+                    🚀 ОТПРАВИТЬ СИГНАЛ
                 </button>
             </div>
         </div>
@@ -76,24 +93,86 @@
         }
 
         // Отправка сигнала
-        document.getElementById('sendBtn').addEventListener('click', () => {
-            const match = document.getElementById('match').value;
-            const bet = document.getElementById('bet').value;
-            const odds = document.getElementById('odds').value;
+       let currentSignalType = 'single';
+
+        function setSignalType(type) {
+            currentSignalType = type;
+            const btnS = document.getElementById('btnTypeSingle');
+            const btnE = document.getElementById('btnTypeExpress');
+            const formS = document.getElementById('formSingle');
+            const formE = document.getElementById('formExpress');
+
+            if(type === 'single') {
+                btnS.className = 'w-1/2 py-1.5 rounded bg-blue-500 text-white font-bold text-sm';
+                btnE.className = 'w-1/2 py-1.5 rounded bg-gray-700 text-gray-400 font-bold text-sm';
+                formS.classList.remove('hidden');
+                formE.classList.add('hidden');
+            } else {
+                btnE.className = 'w-1/2 py-1.5 rounded bg-purple-500 text-white font-bold text-sm';
+                btnS.className = 'w-1/2 py-1.5 rounded bg-gray-700 text-gray-400 font-bold text-sm';
+                formE.classList.remove('hidden');
+                formS.classList.add('hidden');
+                if(document.getElementById('expressEvents').children.length === 0) addExpressEvent();
+            }
+        }
+
+        function addExpressEvent() {
+            const container = document.getElementById('expressEvents');
+            const div = document.createElement('div');
+            div.className = 'flex flex-col gap-2 p-2 bg-gray-800 rounded border border-gray-700 express-item';
+            div.innerHTML = `
+                <input type="text" placeholder="Матч" class="exp-match w-full bg-gray-700 rounded p-2 text-sm outline-none">
+                <div class="flex gap-2">
+                    <input type="text" placeholder="Исход" class="exp-bet w-1/2 bg-gray-700 rounded p-2 text-sm outline-none">
+                    <input type="text" placeholder="КФ" class="exp-odds w-1/2 bg-gray-700 rounded p-2 text-sm outline-none">
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        // Отправка сигнала
+        document.getElementById('sendBtn').onclick = () => {
             const amount = document.getElementById('amount').value;
+            if(!amount) return alert("Укажи сумму ставки!");
 
-            if(!match || !bet || !odds || !amount) return alert("Заполни все поля!");
+            let signalData = { type: currentSignalType, amount: amount };
 
-            socket.emit('send_signal', { match, bet, odds, amount });
+            if(currentSignalType === 'single') {
+                signalData.match = document.getElementById('match').value;
+                signalData.bet = document.getElementById('bet').value;
+                signalData.odds = document.getElementById('odds').value;
+                if(!signalData.match || !signalData.bet || !signalData.odds) return alert("Заполни все поля ординара!");
+            } else {
+                signalData.odds = document.getElementById('totalOdds').value;
+                if(!signalData.odds) return alert("Укажи итоговый коэффициент!");
+                
+                const items = document.querySelectorAll('.express-item');
+                signalData.events = [];
+                items.forEach(item => {
+                    signalData.events.push({
+                        match: item.querySelector('.exp-match').value,
+                        bet: item.querySelector('.exp-bet').value,
+                        odds: item.querySelector('.exp-odds').value
+                    });
+                });
+            }
+
+            socket.emit('send_signal', signalData);
             
-            document.getElementById('match').value = '';
-            document.getElementById('bet').value = '';
-            document.getElementById('odds').value = '';
+            // Очистка полей после отправки
             document.getElementById('amount').value = '';
+            if(currentSignalType === 'single') {
+                document.getElementById('match').value = '';
+                document.getElementById('bet').value = '';
+                document.getElementById('odds').value = '';
+            } else {
+                document.getElementById('totalOdds').value = '';
+                document.getElementById('expressEvents').innerHTML = '';
+                addExpressEvent();
+            }
 
-            // Переключаем сразу во вкладку истории, чтобы видеть отправленный сигнал
             switchTab('history');
-        });
+        };
 
         // Изменение статуса сигнала
         function setStatus(id, status) {
