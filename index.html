@@ -11,6 +11,23 @@
         body { background-color: #121212; color: #ffffff; padding-bottom: 80px; }
         .notification { transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(-150%); }
         .notification.show { transform: translateY(0); }
+        
+        /* Анимации для пузыря статистики */
+        @keyframes breathePlus {
+            0% { transform: scale(1); box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(34, 197, 94, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
+        }
+        @keyframes breatheMinus {
+            0% { transform: scale(1); box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(239, 68, 68, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+        }
+        @keyframes breatheZero {
+            0% { transform: scale(1); box-shadow: 0 0 20px rgba(156, 163, 175, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(156, 163, 175, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 0 20px rgba(156, 163, 175, 0.4); }
+        }
     </style>
 </head>
 <body class="p-4 relative min-h-screen select-none">
@@ -55,15 +72,36 @@
         <div id="historyList" class="space-y-3"></div>
     </div>
 
+    <!-- ВКЛАДКА 3: СТАТИСТИКА (ПУЗЫРЬ) -->
+    <div id="tabStats" class="hidden flex flex-col items-center justify-center min-h-[60vh]">
+        <h2 class="text-xl font-bold text-gray-300 mb-8">Итоги за месяц</h2>
+        
+        <!-- Анимированный пузырь -->
+        <div id="profitBubble" class="w-48 h-48 rounded-full flex flex-col items-center justify-center transition-colors duration-500 bg-gray-800 border-4 border-gray-600" style="animation: breatheZero 3s infinite ease-in-out;">
+            <span class="text-sm font-semibold text-white/70 mb-1 uppercase tracking-widest">Профит</span>
+            <span id="profitValue" class="text-3xl font-black text-white">0</span>
+        </div>
+
+        <div class="mt-8 flex gap-4 text-sm font-medium">
+            <div class="bg-gray-800 px-4 py-2 rounded-lg text-green-400">✅ <span id="statWin">0</span></div>
+            <div class="bg-gray-800 px-4 py-2 rounded-lg text-blue-400">🔄 <span id="statRefund">0</span></div>
+            <div class="bg-gray-800 px-4 py-2 rounded-lg text-red-400">❌ <span id="statLoss">0</span></div>
+        </div>
+    </div>
+
     <!-- Нижняя панель навигации -->
     <div class="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur border-t border-gray-800 flex justify-around p-2 z-40">
-        <button onclick="switchTab('match')" id="btnMatch" class="flex flex-col items-center text-green-500 w-1/2 py-1 transition">
+        <button onclick="switchTab('match')" id="btnMatch" class="flex flex-col items-center text-green-500 w-1/3 py-1 transition">
             <span class="text-xl">⚽</span>
-            <span class="text-xs mt-1 font-semibold">Матч-центр</span>
+            <span class="text-[10px] mt-1 font-semibold">Матч-центр</span>
         </button>
-        <button onclick="switchTab('history')" id="btnHistory" class="flex flex-col items-center text-gray-500 w-1/2 py-1 transition relative">
+        <button onclick="switchTab('history')" id="btnHistory" class="flex flex-col items-center text-gray-500 w-1/3 py-1 transition relative">
             <span class="text-xl">📋</span>
-            <span class="text-xs mt-1 font-semibold">История <span id="historyCount" class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded-full text-[10px] ml-0.5">0</span></span>
+            <span class="text-[10px] mt-1 font-semibold">История <span id="historyCount" class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded-full text-[10px] ml-0.5 hidden">0</span></span>
+        </button>
+        <button onclick="switchTab('stats')" id="btnStats" class="flex flex-col items-center text-gray-500 w-1/3 py-1 transition">
+            <span class="text-xl">📈</span>
+            <span class="text-[10px] mt-1 font-semibold">Статистика</span>
         </button>
     </div>
 
@@ -74,21 +112,18 @@
         const socket = io(); 
 
         function switchTab(tab) {
-            const tabMatch = document.getElementById('tabMatchCenter');
-            const tabHistory = document.getElementById('tabHistory');
-            const btnMatch = document.getElementById('btnMatch');
-            const btnHistory = document.getElementById('btnHistory');
-
+            document.querySelectorAll('#tabMatchCenter, #tabHistory, #tabStats').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('#btnMatch, #btnHistory, #btnStats').forEach(el => el.classList.replace('text-green-500', 'text-gray-500'));
+            
             if (tab === 'match') {
-                tabMatch.classList.remove('hidden');
-                tabHistory.classList.add('hidden');
-                btnMatch.className = 'flex flex-col items-center text-green-500 w-1/2 py-1 transition';
-                btnHistory.className = 'flex flex-col items-center text-gray-500 w-1/2 py-1 transition';
+                document.getElementById('tabMatchCenter').classList.remove('hidden');
+                document.getElementById('btnMatch').classList.replace('text-gray-500', 'text-green-500');
+            } else if (tab === 'history') {
+                document.getElementById('tabHistory').classList.remove('hidden');
+                document.getElementById('btnHistory').classList.replace('text-gray-500', 'text-green-500');
             } else {
-                tabMatch.classList.add('hidden');
-                tabHistory.classList.remove('hidden');
-                btnMatch.className = 'flex flex-col items-center text-gray-500 w-1/2 py-1 transition';
-                btnHistory.className = 'flex flex-col items-center text-green-500 w-1/2 py-1 transition';
+                document.getElementById('tabStats').classList.remove('hidden');
+                document.getElementById('btnStats').classList.replace('text-gray-500', 'text-green-500');
             }
         }
 
@@ -110,11 +145,56 @@
             }
         }
 
+        function calculateStats(history) {
+            let profit = 0;
+            let wins = 0, losses = 0, refunds = 0;
+
+            history.forEach(item => {
+                if (item.status === 'pending') return;
+                
+                // Извлекаем числа из строки (убираем валюту и пробелы)
+                let amt = parseFloat(String(item.amount).replace(/[^\d.-]/g, ''));
+                let kf = parseFloat(String(item.odds).replace(',', '.'));
+                
+                if (isNaN(amt) || isNaN(kf)) return;
+
+                if (item.status === 'win') {
+                    profit += (amt * kf) - amt; // Считаем чистую прибыль
+                    wins++;
+                } else if (item.status === 'loss') {
+                    profit -= amt; // Минусуем сумму ставки
+                    losses++;
+                } else if (item.status === 'refund') {
+                    refunds++;
+                }
+            });
+
+            // Обновляем текст
+            const valEl = document.getElementById('profitValue');
+            valEl.innerText = profit > 0 ? '+' + profit.toFixed(0) : profit.toFixed(0);
+            document.getElementById('statWin').innerText = wins;
+            document.getElementById('statLoss').innerText = losses;
+            document.getElementById('statRefund').innerText = refunds;
+
+            // Меняем цвет и анимацию пузыря
+            const bubble = document.getElementById('profitBubble');
+            if (profit > 0) {
+                bubble.className = "w-48 h-48 rounded-full flex flex-col items-center justify-center transition-colors duration-500 bg-green-900 border-4 border-green-500 text-green-100";
+                bubble.style.animation = "breathePlus 3s infinite ease-in-out";
+            } else if (profit < 0) {
+                bubble.className = "w-48 h-48 rounded-full flex flex-col items-center justify-center transition-colors duration-500 bg-red-900 border-4 border-red-500 text-red-100";
+                bubble.style.animation = "breatheMinus 3s infinite ease-in-out";
+            } else {
+                bubble.className = "w-48 h-48 rounded-full flex flex-col items-center justify-center transition-colors duration-500 bg-gray-800 border-4 border-gray-500 text-gray-200";
+                bubble.style.animation = "breatheZero 3s infinite ease-in-out";
+            }
+        }
+
         // Отрисовка списка истории
         socket.on('history_update', (history) => {
-            document.getElementById('historyCount').innerText = history.length;
+            calculateStats(history); // Запускаем расчет при каждом обновлении
+
             const list = document.getElementById('historyList');
-            
             if (history.length === 0) {
                 list.innerHTML = `
                     <div class="bg-gray-800/60 rounded-2xl p-8 text-center border border-gray-700/50">
@@ -124,27 +204,52 @@
                 return;
             }
 
-            list.innerHTML = history.map(item => `
+            list.innerHTML = history.map(item => {
+                let matchContent = '';
+                
+                // Рендер Ординара
+                if (item.type === 'single' || !item.events || item.events.length === 0) {
+                    matchContent = `
+                        <h3 class="font-bold text-base text-white mt-0.5">${item.match}</h3>
+                        <p class="text-gray-300 mt-2 text-sm">Исход: <span class="text-white font-semibold">${item.bet}</span></p>
+                    `;
+                } 
+                // Рендер Экспресса
+                else {
+                    matchContent = `
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="bg-purple-600/30 text-purple-300 text-[10px] uppercase font-bold px-2 py-0.5 rounded border border-purple-500/50">⚡ Экспресс</span>
+                        </div>
+                        <div class="space-y-1.5 mt-2 bg-gray-800/50 p-2 rounded-lg border border-gray-700/50">
+                            ${item.events.map(ev => `
+                                <div class="text-xs border-b border-gray-700/50 pb-1 last:border-0 last:pb-0">
+                                    <div class="text-gray-300">${ev.match}</div>
+                                    <div class="flex justify-between mt-0.5">
+                                        <span class="text-white font-medium">${ev.bet}</span>
+                                        <span class="text-green-400">${ev.odds}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                return `
                 <div class="rounded-xl p-4 border ${getBorderColor(item.status)} shadow-md transition">
                     <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <span class="text-[11px] text-gray-400">🕒 ${item.time}</span>
-                            <h3 class="font-bold text-base text-white mt-0.5">${item.match}</h3>
-                        </div>
+                        <span class="text-[11px] text-gray-400">🕒 ${item.time}</span>
                         ${getStatusBadge(item.status)}
                     </div>
-                    <div class="bg-gray-900/90 rounded-lg p-3 mt-2 flex justify-between items-center text-sm border border-gray-800">
-                        <div>
-                            <p class="text-gray-300">Исход: <span class="text-white font-semibold">${item.bet}</span></p>
-                            <p class="text-yellow-400 font-medium text-xs mt-1">💰 Сумма: ${item.amount}</p>
-                        </div>
+                    ${matchContent}
+                    <div class="bg-gray-900/90 rounded-lg p-3 mt-3 flex justify-between items-center text-sm border border-gray-800">
+                        <p class="text-yellow-400 font-medium text-xs">💰 Ставка: ${item.amount}</p>
                         <div class="text-right bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
                             <span class="text-[10px] text-gray-400 block uppercase">Кэф</span>
                             <span class="text-base font-bold text-green-400">${item.odds}</span>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         });
 
         // Всплывающий баннер при новом сигнале
@@ -153,8 +258,8 @@
                 tg.HapticFeedback.notificationOccurred('success');
             }
             
-            document.getElementById('matchName').innerText = data.match;
-            document.getElementById('betDetails').innerText = `Ставка: ${data.bet} | КФ: ${data.odds}`;
+            document.getElementById('matchName').innerText = data.type === 'express' ? '⚡ ЭКСПРЕСС' : data.match;
+            document.getElementById('betDetails').innerText = `КФ: ${data.odds}`;
             document.getElementById('betAmount').innerText = `💰 Сумма: ${data.amount}`;
             
             const banner = document.getElementById('notificationBanner');
