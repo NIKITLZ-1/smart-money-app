@@ -69,9 +69,11 @@ io.on('connection', (socket) => {
   socket.on('send_signal', async (signalData) => {
     const newSignal = {
       id: Date.now().toString(),
-      match: signalData.match,
-      bet: signalData.bet,
-      odds: signalData.odds,
+      type: signalData.type || 'single', // Добавили тип: 'single' (ординар) или 'express' (экспресс)
+      match: signalData.match || 'Экспресс',
+      bet: signalData.bet || '-',
+      odds: signalData.odds, 
+      events: signalData.events || [], // Добавили массив матчей для экспресса
       amount: signalData.amount,
       status: 'pending',
       time: new Date().toLocaleString('ru-RU', { 
